@@ -4,9 +4,7 @@ function createElement(type, props, ...children) {
     props: {
       ...props,
       children: children.map((child) => {
-        /**
-         * 处理function component传参
-        */
+        // 处理function component传参
         const isTextNode = typeof child === 'string' || typeof child === 'number'
         return isTextNode ? createTextNode(child) : child
       }),
@@ -42,14 +40,12 @@ function commitRoot() {
   root = null
 }
 
-/**
- * 递归创建DOM
-*/
+// 递归创建DOM
 function commitWork(fiber) {
   if (!fiber) return
   let fiberParent = fiber.parent
   // 处理函数 && 嵌套函数的情况: 向上查找拥有dom的节点, 作为父节点
-  while(!fiberParent.dom) {
+  while (!fiberParent.dom) {
     fiberParent = fiberParent.parent
   }
   if (fiber.dom) {
@@ -104,24 +100,34 @@ function initChildren(fiber, children) {
   });
 }
 
+
+// 重构代码, 解耦职责
+function updateFunctionComponent(fiber) {
+  const children = [fiber.type(fiber.props)]
+  initChildren(fiber, children);
+}
+function updateHostComponent(fiber) {
+  // function component不需要创建dom
+  if (!fiber.dom) {
+    const dom = (fiber.dom = createDOM(fiber.type));
+    updateProps(dom, fiber.props);
+  }
+  const children = fiber.props.children;
+  initChildren(fiber, children);
+}
 function performWorkOfUnit(fiber) {
   // function component 会将函数作为type传递进来
   const isFunc = typeof fiber.type == 'function'
-  // function component不需要创建dom
-  if (!isFunc) {
-    if (!fiber.dom) {
-      const dom = (fiber.dom = createDOM(fiber.type));
-      updateProps(dom, fiber.props);
-    }
+  if (isFunc) {
+    updateFunctionComponent(fiber)
+  } else {
+    updateHostComponent(fiber)
   }
-  const children = isFunc ? [fiber.type(fiber.props)] : fiber.props.children;
-  initChildren(fiber, children);
+
   if (fiber.child) return fiber.child;
-  /**
-   * 循环查找, 直到查找到最近的父级节点的sibling
-  */
+  // 循环查找, 直到查找到最近的父级节点的sibling
   let nextFiber = fiber
-  while(nextFiber) {
+  while (nextFiber) {
     if (nextFiber.sibling) {
       return nextFiber.sibling
     }

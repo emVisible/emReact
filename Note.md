@@ -191,6 +191,8 @@ solution
 
 ## 6 function component
 
+> 重构伴随着开发周期, 看似会增加一些代码量, 但实际上会减少花费的时间与精力
+
 Task
 
 - 支持Function Component
