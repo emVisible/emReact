@@ -35,6 +35,12 @@ function render(el, container) {
   root = nextWorkOfUnit
 }
 
+function createDOM(type) {
+  return type == "TEXT_ELEMENT"
+    ? document.createTextNode("")
+    : document.createElement(type);
+}
+
 function commitRoot() {
   commitWork(root.child)
   root = null
@@ -54,6 +60,7 @@ function commitWork(fiber) {
   commitWork(fiber.child)
   commitWork(fiber.sibling)
 }
+
 function workLoop(deadline) {
   let isStop = false;
   while (!isStop && nextWorkOfUnit) {
@@ -64,12 +71,6 @@ function workLoop(deadline) {
     commitRoot()
   }
   requestIdleCallback(workLoop);
-}
-
-function createDOM(type) {
-  return type == "TEXT_ELEMENT"
-    ? document.createTextNode("")
-    : document.createElement(type);
 }
 
 function updateProps(dom, props) {
@@ -100,14 +101,12 @@ function initChildren(fiber, children) {
   });
 }
 
-
-// 重构代码, 解耦职责
 function updateFunctionComponent(fiber) {
   const children = [fiber.type(fiber.props)]
   initChildren(fiber, children);
 }
+
 function updateHostComponent(fiber) {
-  // function component不需要创建dom
   if (!fiber.dom) {
     const dom = (fiber.dom = createDOM(fiber.type));
     updateProps(dom, fiber.props);
@@ -115,6 +114,7 @@ function updateHostComponent(fiber) {
   const children = fiber.props.children;
   initChildren(fiber, children);
 }
+
 function performWorkOfUnit(fiber) {
   // function component 会将函数作为type传递进来
   const isFunc = typeof fiber.type == 'function'
