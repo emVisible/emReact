@@ -201,3 +201,11 @@ Task
     - 函数&&嵌套函数的create
     - DOM创建
   - 添加到视图: while循环处理父级查找
+
+## 7 更新Props
+
+Task
+- 获取新的DOM树
+  - initChildren时附加
+- 找到旧DOM节点
+- diff props
