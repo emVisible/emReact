@@ -9,7 +9,7 @@ function createElement(type, props, ...children) {
         return isTextNode ? createTextNode(child) : child
       }),
     },
-  };
+  }
 }
 
 function createTextNode(text) {
