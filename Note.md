@@ -202,10 +202,31 @@ Task
     - DOM创建
   - 添加到视图: while循环处理父级查找
 
-## 7 更新Props
+## 7 点击事件 && 更新Props
 
 Task
-- 获取新的DOM树
-  - initChildren时附加
+
+点击事件
+  - updateprops方法中根据传递的props的key的startsWith判断是否以on开头
+  - 对相应的dom添加事件绑定
+
+更新props
+- 获取新的DOM树——通过链表查找
+  - 初次render时, 获取对root的引用, 设为currentRoot;
+  - 另创建update函数, 其workUnit的dom和props为currentRoot的dom和props
 - 找到旧DOM节点
-- diff props
+  - 通过props中设置altenate指针指向上一个节点实现
+- props更新
+  - 对prevFiber和nextFiber的props进行遍历, 根据不同的情况设置更新或删除
+
+
+## 8 更新children
+
+Task
+
+diff更新: 标签不一致时的创建与删除
+  - 删除旧节点, 创建新节点
+  - 对旧节点的删除
+    - 创建删除列表以批量删除, 在新老fiber的type不一致时(即需要创建新的时)push入列表;
+    - 在每一次渲染任务提交前进行旧DOM删除
+    当新节点数量 < 老节点, 需要删除多余的老节点
