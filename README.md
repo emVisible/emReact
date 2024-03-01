@@ -10,3 +10,5 @@
 - 任务调度器-requestIdleCallback
 - Fiber架构
 - Reconcile && diff(init / update)
+
+附加: redux最简逻辑实现
