@@ -1,13 +1,16 @@
 # MiniReact, 实现基本的React操作.
 ---
 方法总结:
+收集——存储——寻找
 1. 复杂问题 && 源码可以通过画图来理清思路, 不断找到问题以及突破点
 2. 尝试debug代码, 通过代码执行流程来不断逼近问题点
 3. 根据已有条件, 思考问题, 寻找问题, 解决问题
+4. 基于已有代码的优化 > 基于新增功能的优化 > 不优化
+5. 实现功能时专注于实现功能, 重构时专注于重构
 
 ## 1——动态创建VDOM && VNode, 实现页面的动态渲染
-    - VDOM是基于Js对象对DOM进行抽象描述, 最后根据React自身协调渲染, 来达成从抽象到具体的过程。
-    - VNode是VDOM的子集, 是其中的一部分, 同样是基于JS对象来进行有选择地创建, 最后添加到VDOM上
+VDOM是基于Js对象对DOM进行抽象描述, 最后根据React自身协调渲染, 来达成从抽象到具体的过程。
+VNode是VDOM的子集, 是其中的一部分, 同样是基于JS对象来进行有选择地创建, 最后添加到VDOM上
 
 ## 2——添加JSX
 - 基于实现的最简版MiniReact, 将js变为jsx——使用JSX
@@ -60,7 +63,7 @@ jsx的语法糖会隐式调用通过import导入的React默认导出对象的cre
 
 ```
 
-## 4——实现简单的fiber架构
+## 4——实现最简fiber架构
 - 实现基本的任务调度器
 - 数据结构: 链表
 - 算法: DOM遍历和链表建立同时进行
@@ -194,7 +197,7 @@ issue
 solution
 - 统一提交渲染, 在执行完链表操作后一次性提交, 关闭原本的分段提交; 分段提交会产生断落 / 分层
 
-## 6 function component
+## 6 函数组件function component
 
 > 重构伴随着开发周期, 看似会增加一些代码量, 但实际上会减少花费的时间与精力
 
@@ -225,7 +228,7 @@ Task
   - 对prevFiber和nextFiber的props进行遍历, 根据不同的情况设置更新或删除
 
 
-## 8 更新children
+## 8-11 更新children
 
 Task
 
@@ -253,3 +256,45 @@ diff更新: 标签不一致时的创建与删除
   - 解决方法: 渲染部分树
     - 确定开始位置: 当前组件
     - 确定结束位置: 当前组件的sibling节点
+
+## 12 实现useState
+为什么useState的返回值要用数组接收?
+- 数组的解构是有序的, 对象是无序的
+- 多次调用useState, 对象需要重新命名
+
+为什么Hooks组件需要在函数最外层作用域中定义和使用?
+- 源码中按照index来指定Hook对应的组件, 以顺序指定; 如果被包在if等语句中, 不能保证语句块执行, 即顺序可能会错乱
+
+实现步骤
+1. 定义useState函数, 满足useState的要求: 接收一个initial值, 数组形式返回state和setState方法; 其中setState集成赋值和视图更新两个功能;
+2. 设置新值, 获取旧值: 根据函数组件的原理, 在函数内部根据wipFiber(即函数本身的VDOM), 依照链表alternate获取上一个节点的state, 并以此来设置新节点的state;
+3. 在状态列表中指定状态: 为其新增属性: stateHooks集合, 并依据index来指定具体的state
+
+## 13 useState action优化
+React中使用useState()不会立即赋值和更新视图, React对其做了优化: 在每次的变化进行缓存, 在某些时刻进行批量处理, 即视图和数据是异步的;
+- fiber中对stateHook属性额外设置queue, 用于存放setState时传递的action callback
+- 对入队操作进行优化, 支持setState传递原始值——优化思路是逻辑复用, 将原始值进行包装, 包装为函数, 而函数本身已经拥有对应的处理
+- 对渲染进行优化: 根据传递的action最终返回的值与现有的state值进行比较, 若相同则不进行处理
+
+## 14 useEffect
+重点: useEffect的执行时机; 执行时机和depth参数的关系
+执行时机: DOM及其链表关系创建完之后, 即commitWork之后, 此时拥有完整的链表关系
+功能编写:
+- 核心为两个函数:
+  -  useEffect函数用于收集effectHook描述对象, 将其绑定到wipFiber中
+  -  commitEffect用于从dom root递归查找所有满足条件的节点, 并执行回调
+- 一个函数组件中同时有多个useEffect实现:
+  - effectHook的基础上设置列表, 储存多个effectHook callback; 进入FC时列表初始化; 进入useEffect时push
+  - commitEffect相对应的单个callback调用改为循环调用
+
+## 15 useEffect cleanup
+cleanup本身用于清空副作用
+- 在调用useEffect之前进行调用, 获取上一次调用的值
+- 当depth的length为0, 即传递[]时, cleanup不会执行
+
+功能编写:
+1. 存储: 声明在effectHook中, commitEffect时在执行callback的同时拿到返回的函数
+2. 调用:
+   - 找到位置: 在run之前;
+   - 赋值: callback执行时
+   - 编写cleanUp函数 && 在内部effect执行函数前执行: 递归依次检测, 有hooks就调用; 核心是执行的时oldFiber的hook
